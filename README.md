@@ -46,8 +46,9 @@ func main {
 }
 ```
 
-Produces ![Example](./example.png)
+Produces 
+![Example](./example.png)
 
 ## Installation
 
-`go get -u github.com/logrusorgru/aurora/v3`
+`go get -u github.com/xaanit/simple-logger`
