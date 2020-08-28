@@ -10,7 +10,7 @@ package main
 import (
     "fmt"
     "github.com/logrusorgru/aurora/v3"
-	log "simple-logger"
+    log "simple-logger"
 )
 
 func main {
