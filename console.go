@@ -20,6 +20,7 @@
 package simple_logger
 
 import (
+	"errors"
 	"fmt"
 	"time"
 )
@@ -51,9 +52,13 @@ func (c ConsoleLogger) GetColumns() []Column {
 	return c.columns
 }
 
-func (c ConsoleLogger) Log(level, message string) {
+func (c ConsoleLogger) Log(level, message string) (int, error) {
 	if _, ok := c.GetLevels()[level]; !ok {
-		return
+		return InvalidLevel, errors.New(fmt.Sprintf("%v is not a valid level for this logger", level))
+	}
+
+	if len(c.GetColumns()) == 0 {
+		return NoColumnsSet, errors.New("you must set at least one column")
 	}
 
 	context := c.createContext(level, message)
@@ -73,6 +78,8 @@ func (c ConsoleLogger) Log(level, message string) {
 	}
 
 	fmt.Println(format)
+
+	return Success, nil
 }
 
 func ConsoleLoggerBuilder() LoggerBuilder {
@@ -100,9 +107,9 @@ func (b *consoleLoggerBuilder) AddColumn(column Column) LoggerBuilder {
 	return b
 }
 
-func (b *consoleLoggerBuilder) AddColumnByIndex(index int, column Column) LoggerBuilder {
-	b.builder.AddColumnByIndex(index, column)
-	return b
+func (b *consoleLoggerBuilder) AddColumnByIndex(index uint, column Column) (LoggerBuilder, error) {
+	err := b.builder.AddColumnByIndex(index, column)
+	return b, err
 }
 
 func (b *consoleLoggerBuilder) Build() Logger {

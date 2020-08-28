@@ -40,11 +40,17 @@ type Column func(context Context) string
 
 // Logger stuff
 
+const (
+	Success = iota
+	InvalidLevel
+	NoColumnsSet
+)
+
 type Logger interface {
 	GetLevels() map[string]func() string
 	GetPaddings() []Padding
 	GetColumns() []Column
-	Log(level, message string)
+	Log(level, message string) (int, error)
 }
 
 // Context stuff

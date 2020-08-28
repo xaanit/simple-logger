@@ -20,6 +20,7 @@
 package simple_logger
 
 import (
+	"errors"
 	"fmt"
 	"github.com/logrusorgru/aurora/v3"
 )
@@ -28,44 +29,44 @@ type LoggerBuilder interface {
 	AddLevel(name string, display func() string) LoggerBuilder
 	AddPadding(padding Padding) LoggerBuilder
 	AddColumn(column Column) LoggerBuilder
-	AddColumnByIndex(index int, column Column) LoggerBuilder
+	AddColumnByIndex(index uint, column Column) (LoggerBuilder, error)
 	Build() Logger
 }
 
-func defaultLevels(level string, display func() string, exclude []string, builder LoggerBuilder) {
-	if findStrings(exclude, level) == -1 {
-		builder.AddLevel(level, display)
+func SetDefaults(builder LoggerBuilder, excludeLevels []string, excludePaddings []Padding, excludeColumns []uint) LoggerBuilder {
+	defaultLevels := func(level string, display func() string) {
+		if findStrings(excludeLevels, level) == -1 {
+			builder.AddLevel(level, display)
+		}
 	}
-}
 
-func defaultPaddings(padding Padding, exclude []Padding, builder LoggerBuilder) {
-	if findPadding(exclude, padding) == -1 {
-		builder.AddPadding(padding)
+	defaultLevels("INFO", Info)
+	defaultLevels("DEBUG", Debug)
+	defaultLevels("ERROR", Error)
+	defaultLevels("FATAL", Fatal)
+	defaultLevels("WARNING", Warning)
+
+	defaultPaddings := func(padding Padding) {
+		if findPadding(excludePaddings, padding) == -1 {
+			builder.AddPadding(padding)
+		}
 	}
-}
 
-func defaultColumns(column int, exclude []int, display func(context Context) string, builder LoggerBuilder) {
-	if findInts(exclude, column) == -1 {
-		builder.AddColumnByIndex(column, display)
+	defaultPaddings(TimestampPadding)
+	defaultPaddings(LevelPadding)
+
+	defaultColumns := func(column uint, display Column) {
+		if findInts(excludeColumns, column) == -1 {
+			_, _ = builder.AddColumnByIndex(column, display)
+		}
 	}
-}
 
-func SetDefaults(builder LoggerBuilder, excludeLevels []string, excludePaddings []Padding, excludeColumns []int) LoggerBuilder {
-	defaultLevels("INFO", Info, excludeLevels, builder)
-	defaultLevels("DEBUG", Debug, excludeLevels, builder)
-	defaultLevels("ERROR", Error, excludeLevels, builder)
-	defaultLevels("FATAL", Fatal, excludeLevels, builder)
-	defaultLevels("WARNING", Warning, excludeLevels, builder)
-
-	defaultPaddings(TimestampPadding, excludePaddings, builder)
-	defaultPaddings(LevelPadding, excludePaddings, builder)
-
-	defaultColumns(0, excludeColumns, func(context Context) string {
+	defaultColumns(0, func(context Context) string {
 		layout := fmt.Sprintf("%v %v %v, %v | %v:%v:%v", Weekday, Month, Day, Year, Hour, Minute, Second)
 		return aurora.BrightBlue(context.FormatTimestamp(layout)).String()
-	}, builder)
-	defaultColumns(1, excludeColumns, func(context Context) string { return context.FormatLevel() }, builder)
-	defaultColumns(2, excludeColumns, func(context Context) string { return context.Message }, builder)
+	})
+	defaultColumns(1, func(context Context) string { return context.FormatLevel() })
+	defaultColumns(2, func(context Context) string { return context.Message })
 
 	return builder
 }
@@ -96,9 +97,18 @@ func (b *GenericLoggerBuilder) AddColumn(column Column) {
 	b.columns = append(b.columns, column)
 }
 
-func (b *GenericLoggerBuilder) AddColumnByIndex(index int, column Column) {
+func (b *GenericLoggerBuilder) AddColumnByIndex(index uint, column Column) error {
+	if index == uint(len(b.columns)) {
+		b.AddColumn(column)
+		return nil
+	}
+	if index > uint(len(b.columns)) {
+		return errors.New("index must be less than the index of the array")
+	}
+
 	// https://stackoverflow.com/questions/46128016/insert-a-value-in-a-slice-at-a-given-index
 	b.columns = append(b.columns, nil)
 	copy(b.columns[index+1:], b.columns[index:])
 	b.columns[index] = column
+	return nil
 }

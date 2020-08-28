@@ -45,7 +45,7 @@ func findStrings(arr []string, elem string) int {
 	return -1
 }
 
-func findInts(arr []int, elem int) int {
+func findInts(arr []uint, elem uint) int {
 	if arr == nil {
 		return -1
 	}
