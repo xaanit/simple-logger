@@ -55,7 +55,7 @@ const (
 
 // Represents a Logger that can log to a variety of things.
 type Logger interface {
-	// Returns all the levels for this Logger.
+	// Returns all the Levels for this Logger.
 	GetLevels() map[string]func() string
 	// Returns all the Padding this Logger uses.
 	GetPaddings() []Padding
@@ -88,7 +88,7 @@ type Context struct {
 	Message string
 	Time    time.Time
 	Level   string
-	logger  Logger
+	Logger  Logger
 }
 
 // ANSI color codes
@@ -101,7 +101,7 @@ var ansi = regexp.MustCompile("\\x1B(?:[@-Z\\\\-_]|\\[[0-?]*[ -/]*[@-~])")
 
 		Saturday August 29, 2020 @ 5:41:00 | INFO | Hello, world
 
-	This method can add optional padding so that all levels will line up.
+	This method can add optional padding so that all Levels will line up.
 	Without padding:
 
 		Saturday August 29, 2020 @ 5:41:00 | WARNING | Hello, world
@@ -113,12 +113,12 @@ var ansi = regexp.MustCompile("\\x1B(?:[@-Z\\\\-_]|\\[[0-?]*[ -/]*[@-~])")
 		Saturday August 29, 2020 @ 5:41:20 | INFO    | Hello, world
 */
 func (c *Context) FormatLevel() string {
-	padding := findPadding(c.logger.GetPaddings(), LevelPadding) != -1
+	padding := findPadding(c.Logger.GetPaddings(), LevelPadding) != -1
 	after := ""
-	display := c.logger.GetLevels()[c.Level]()
+	display := c.Logger.GetLevels()[c.Level]()
 	if padding {
 		longest := 0
-		for _, element := range c.logger.GetLevels() {
+		for _, element := range c.Logger.GetLevels() {
 			if l := len(ansi.ReplaceAllString(element(), "")); l > longest {
 				longest = l
 			}
@@ -134,7 +134,7 @@ func (c *Context) FormatLevel() string {
 // This formats the date so that it's always as long as the longest date you can display (without repeating).
 // The longest date I was able to find is "Wednesday September 30th, 9999"
 func (c *Context) FormatDate(layout string) string {
-	padding := findPadding(c.logger.GetPaddings(), DatePadding) != -1
+	padding := findPadding(c.Logger.GetPaddings(), DatePadding) != -1
 	after := ""
 	formatted := c.Time.Format(layout)
 
@@ -160,7 +160,7 @@ var longestTimestampSeen = 0
 	This padding can change due to the fact that timestamps aren't universal in how they're formatted.
 */
 func (c *Context) FormatTimestamp(layout string) string {
-	padding := findPadding(c.logger.GetPaddings(), TimestampPadding) != -1
+	padding := findPadding(c.Logger.GetPaddings(), TimestampPadding) != -1
 	formatted := c.Time.Format(layout)
 	after := ""
 

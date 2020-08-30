@@ -20,7 +20,6 @@
 package simple_logger
 
 import (
-	"errors"
 	"fmt"
 	"github.com/logrusorgru/aurora/v3"
 )
@@ -32,10 +31,10 @@ type LoggerBuilder interface {
 	AddLevel(name string, display func() string) LoggerBuilder
 	// Adds a level of padding to the Logger. This only works with default Padding.
 	AddPadding(padding Padding) LoggerBuilder
-	// Adds a new Column to the logger. This should always add to the end of the list.
+	// Adds a new Column to the Logger. This should always add to the end of the list.
 	AddColumn(column Column) LoggerBuilder
 	// Adds a new Column into the index passed. This should error if the index does not exist,
-	// but should add to the if the length of the underlying array is passed.
+	// but should add to the if the length (or more) of the underlying array is passed.
 	AddColumnByIndex(index uint, column Column) (LoggerBuilder, error)
 	// Builds a new Logger instance.
 	Build() Logger
@@ -69,7 +68,7 @@ type LoggerBuilder interface {
 
 
  	The last three arguments are for excluding certain defaults.
- 	If you'd like to only have the Info, Warning, and Error levels you'd pass []string{"FATAL", "DEBUG"}.
+ 	If you'd like to only have the Info, Warning, and Error Levels you'd pass []string{"FATAL", "DEBUG"}.
 
  	Columns in this way are indexed based starting from 0. If you'd like to remove the timestamp portion you'd pass []int{0}
 */
@@ -115,46 +114,50 @@ func SetDefaults(builder LoggerBuilder, excludeLevels []string, excludePaddings 
 // default methods in interfaces.
 func NewGenericLoggerBuilder() *GenericLoggerBuilder {
 	return &GenericLoggerBuilder{
-		levels:   make(map[string]func() string),
-		paddings: make(map[Padding]interface{}),
-		columns:  make([]Column, 0),
+		Levels:   make(map[string]func() string),
+		Paddings: make(map[Padding]interface{}),
+		Columns:  make([]Column, 0),
 	}
 }
 
 type GenericLoggerBuilder struct {
-	levels   map[string]func() string
-	paddings map[Padding]interface{}
-	columns  []Column
+	Levels   map[string]func() string
+	Paddings map[Padding]interface{}
+	Columns  []Column
 }
 
 // Implements LoggerBuilder.AddLevel
-func (b *GenericLoggerBuilder) AddLevel(name string, display func() string) {
-	b.levels[name] = display
+func (b *GenericLoggerBuilder) AddLevel(name string, display func() string) LoggerBuilder {
+	b.Levels[name] = display
+	return b
 }
 
 // Implements LoggerBuilder.AddPadding
-func (b *GenericLoggerBuilder) AddPadding(padding Padding) {
-	b.paddings[padding] = nil
+func (b *GenericLoggerBuilder) AddPadding(padding Padding) LoggerBuilder {
+	b.Paddings[padding] = nil
+	return b
 }
 
 // Implements LoggerBuilder.AddColumn
-func (b *GenericLoggerBuilder) AddColumn(column Column) {
-	b.columns = append(b.columns, column)
+func (b *GenericLoggerBuilder) AddColumn(column Column) LoggerBuilder {
+	b.Columns = append(b.Columns, column)
+	return b
 }
 
 // Implements LoggerBuilder.AddColumnByIndex
-func (b *GenericLoggerBuilder) AddColumnByIndex(index uint, column Column) error {
-	if index == uint(len(b.columns)) {
+func (b *GenericLoggerBuilder) AddColumnByIndex(index uint, column Column) (LoggerBuilder, error) {
+	if index >= uint(len(b.Columns)) {
 		b.AddColumn(column)
-		return nil
-	}
-	if index > uint(len(b.columns)) {
-		return errors.New("index must be less than the index of the array")
+		return b, nil
 	}
 
 	// https://stackoverflow.com/questions/46128016/insert-a-value-in-a-slice-at-a-given-index
-	b.columns = append(b.columns, nil)
-	copy(b.columns[index+1:], b.columns[index:])
-	b.columns[index] = column
+	b.Columns = append(b.Columns, nil)
+	copy(b.Columns[index+1:], b.Columns[index:])
+	b.Columns[index] = column
+	return b, nil
+}
+
+func (b *GenericLoggerBuilder) Build() Logger {
 	return nil
 }

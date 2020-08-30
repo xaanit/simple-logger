@@ -37,7 +37,7 @@ func (c ConsoleLogger) createContext(level, message string) Context {
 		Message: message,
 		Time:    time.Now(),
 		Level:   level,
-		logger:  c,
+		Logger:  c,
 	}
 }
 
@@ -62,11 +62,11 @@ func (c ConsoleLogger) GetColumns() []Column {
 	Returns
 		- Success when there was no problems
 		- InvalidLevel when the level provided isn't in this Logger
-		- NoColumnsSet when there are no columns set for this Logger
+		- NoColumnsSet when there are no Columns set for this Logger
 */
 func (c ConsoleLogger) Log(level, message string) (int, error) {
 	if _, ok := c.GetLevels()[level]; !ok {
-		return InvalidLevel, errors.New(fmt.Sprintf("%v is not a valid level for this logger", level))
+		return InvalidLevel, errors.New(fmt.Sprintf("%v is not a valid level for this Logger", level))
 	}
 
 	if len(c.GetColumns()) == 0 {
@@ -121,20 +121,20 @@ func (b *consoleLoggerBuilder) AddColumn(column Column) LoggerBuilder {
 }
 
 func (b *consoleLoggerBuilder) AddColumnByIndex(index uint, column Column) (LoggerBuilder, error) {
-	err := b.builder.AddColumnByIndex(index, column)
+	_, err := b.builder.AddColumnByIndex(index, column)
 	return b, err
 }
 
 func (b *consoleLoggerBuilder) Build() Logger {
 	paddings := make([]Padding, 0)
 
-	for key := range b.builder.paddings {
+	for key := range b.builder.Paddings {
 		paddings = append(paddings, key)
 	}
 
 	return &ConsoleLogger{
-		levels:   b.builder.levels,
+		levels:   b.builder.Levels,
 		paddings: paddings,
-		columns:  b.builder.columns,
+		columns:  b.builder.Columns,
 	}
 }
