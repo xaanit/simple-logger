@@ -25,6 +25,7 @@ import (
 	"time"
 )
 
+// A Logger implementation that logs to console using fmt.Println
 type ConsoleLogger struct {
 	levels   map[string]func() string
 	paddings []Padding
@@ -40,18 +41,29 @@ func (c ConsoleLogger) createContext(level, message string) Context {
 	}
 }
 
+// Implements Logger.GetLevels
 func (c ConsoleLogger) GetLevels() map[string]func() string {
 	return c.levels
 }
 
+// Implements Logger.GetPaddings
 func (c ConsoleLogger) GetPaddings() []Padding {
 	return c.paddings
 }
 
+// Implements Logger.GetColumns
 func (c ConsoleLogger) GetColumns() []Column {
 	return c.columns
 }
 
+/*
+	Implements Logger.Log.
+
+	Returns
+		- Success when there was no problems
+		- InvalidLevel when the level provided isn't in this Logger
+		- NoColumnsSet when there are no columns set for this Logger
+*/
 func (c ConsoleLogger) Log(level, message string) (int, error) {
 	if _, ok := c.GetLevels()[level]; !ok {
 		return InvalidLevel, errors.New(fmt.Sprintf("%v is not a valid level for this logger", level))
@@ -82,6 +94,7 @@ func (c ConsoleLogger) Log(level, message string) (int, error) {
 	return Success, nil
 }
 
+// Creates a new LoggerBuilder for making instances of ConsoleLogger
 func ConsoleLoggerBuilder() LoggerBuilder {
 	return &consoleLoggerBuilder{
 		builder: NewGenericLoggerBuilder(),

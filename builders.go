@@ -25,14 +25,54 @@ import (
 	"github.com/logrusorgru/aurora/v3"
 )
 
+// Defines the methods needed to build a Logger instance
 type LoggerBuilder interface {
+	// Adds a level for the Logger to use. The name is called from the Logger.Log function
+	// and the display is used in the actual logging.
 	AddLevel(name string, display func() string) LoggerBuilder
+	// Adds a level of padding to the Logger. This only works with default Padding.
 	AddPadding(padding Padding) LoggerBuilder
+	// Adds a new Column to the logger. This should always add to the end of the list.
 	AddColumn(column Column) LoggerBuilder
+	// Adds a new Column into the index passed. This should error if the index does not exist,
+	// but should add to the if the length of the underlying array is passed.
 	AddColumnByIndex(index uint, column Column) (LoggerBuilder, error)
+	// Builds a new Logger instance.
 	Build() Logger
 }
 
+/* Sets the default for this builder. The defaults are outlined below:
+
+ 	Levels:
+	 +---------+----------+--------------------------+
+	 | Name    | Variable | Colours                  |
+	 +---------+----------+--------------------------+
+	 | INFO    | Info     | aurora.Cyan              |
+	 +---------+----------+--------------------------+
+	 | DEBUG   | Debug    | aurora.Green             |
+	 +---------+----------+--------------------------+
+	 | ERROR   | Error    | aurora.Red               |
+	 +---------+----------+--------------------------+
+	 | FATAL   | Fatal    | aurora.Bold + aurora.Red |
+	 +---------+----------+--------------------------+
+	 | WARNING | Warning  | aurora.Yellow            |
+	 +---------+----------+--------------------------+
+
+ 	Paddings:
+ 		- TimestampPadding
+ 		- LevelPadding
+
+ 	Columns:
+ 		+-----------+-------+---------+
+ 		| Timestamp | Level | Message |
+ 		+-----------+-------+---------+
+
+
+ 	The last three arguments are for excluding certain defaults.
+ 	If you'd like to only have the Info, Warning, and Error levels you'd pass []string{"FATAL", "DEBUG"}.
+
+ 	Columns in this way are indexed based starting from 0. If you'd like to remove the timestamp portion you'd pass []int{0}
+*/
 func SetDefaults(builder LoggerBuilder, excludeLevels []string, excludePaddings []Padding, excludeColumns []uint) LoggerBuilder {
 	defaultLevels := func(level string, display func() string) {
 		if findStrings(excludeLevels, level) == -1 {
@@ -62,7 +102,7 @@ func SetDefaults(builder LoggerBuilder, excludeLevels []string, excludePaddings 
 	}
 
 	defaultColumns(0, func(context Context) string {
-		layout := fmt.Sprintf("%v %v %v, %v | %v:%v:%v", Weekday, Month, Day, Year, Hour, Minute, Second)
+		layout := fmt.Sprintf("%v %v %v, %v @ %v:%v:%v", Weekday, Month, Day, Year, Hour, Minute, Second)
 		return aurora.BrightBlue(context.FormatTimestamp(layout)).String()
 	})
 	defaultColumns(1, func(context Context) string { return context.FormatLevel() })
@@ -71,6 +111,8 @@ func SetDefaults(builder LoggerBuilder, excludeLevels []string, excludePaddings 
 	return builder
 }
 
+// Makes a new GenericLoggerBuilder to be used for most loggers. Since golang doesn't allow for
+// default methods in interfaces.
 func NewGenericLoggerBuilder() *GenericLoggerBuilder {
 	return &GenericLoggerBuilder{
 		levels:   make(map[string]func() string),
@@ -85,18 +127,22 @@ type GenericLoggerBuilder struct {
 	columns  []Column
 }
 
+// Implements LoggerBuilder.AddLevel
 func (b *GenericLoggerBuilder) AddLevel(name string, display func() string) {
 	b.levels[name] = display
 }
 
+// Implements LoggerBuilder.AddPadding
 func (b *GenericLoggerBuilder) AddPadding(padding Padding) {
 	b.paddings[padding] = nil
 }
 
+// Implements LoggerBuilder.AddColumn
 func (b *GenericLoggerBuilder) AddColumn(column Column) {
 	b.columns = append(b.columns, column)
 }
 
+// Implements LoggerBuilder.AddColumnByIndex
 func (b *GenericLoggerBuilder) AddColumnByIndex(index uint, column Column) error {
 	if index == uint(len(b.columns)) {
 		b.AddColumn(column)

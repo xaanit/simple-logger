@@ -29,27 +29,40 @@ import (
 type Padding int
 
 const (
+	// Pads the timestamps, which is date + time
 	TimestampPadding = iota
+	// Pads the date only
 	DatePadding
+	// Pads the Levels
 	LevelPadding
 )
 
 // Column stuff
 
+// Represents a column in a logged message.
 type Column func(context Context) string
 
 // Logger stuff
 
 const (
+	// Successful log, should be universal
 	Success = iota
+	// The level passed isn't in this Logger
 	InvalidLevel
+	// There were no Column s set in the Logger
 	NoColumnsSet
 )
 
+// Represents a Logger that can log to a variety of things.
 type Logger interface {
+	// Returns all the levels for this Logger.
 	GetLevels() map[string]func() string
+	// Returns all the Padding this Logger uses.
 	GetPaddings() []Padding
+	// Returns all the Column s this Logger uses.
 	GetColumns() []Column
+	// Logs a message. This should return a status code
+	// and an optional error message.
 	Log(level, message string) (int, error)
 }
 
@@ -69,6 +82,8 @@ const ( // Time formatting
 	Second = "05"
 )
 
+// Represents the Context of a Logger message. This contains the Message being sent,
+// the Time of the message, it's Level, and the corresponding Logger.
 type Context struct {
 	Message string
 	Time    time.Time
@@ -80,6 +95,23 @@ type Context struct {
 
 var ansi = regexp.MustCompile("\\x1B(?:[@-Z\\\\-_]|\\[[0-?]*[ -/]*[@-~])")
 
+/*
+	Formats the Level by it's display and Padding. If you use the default settings
+	then a message would take the shape of:
+
+		Saturday August 29, 2020 @ 5:41:00 | INFO | Hello, world
+
+	This method can add optional padding so that all levels will line up.
+	Without padding:
+
+		Saturday August 29, 2020 @ 5:41:00 | WARNING | Hello, world
+		Saturday August 29, 2020 @ 5:41:20 | INFO | Hello, world
+
+	With padding:
+
+		Saturday August 29, 2020 @ 5:41:00 | WARNING | Hello, world
+		Saturday August 29, 2020 @ 5:41:20 | INFO    | Hello, world
+*/
 func (c *Context) FormatLevel() string {
 	padding := findPadding(c.logger.GetPaddings(), LevelPadding) != -1
 	after := ""
@@ -99,13 +131,15 @@ func (c *Context) FormatLevel() string {
 	return fmt.Sprintf("%v%v", display, after)
 }
 
+// This formats the date so that it's always as long as the longest date you can display (without repeating).
+// The longest date I was able to find is "Wednesday September 30th, 9999"
 func (c *Context) FormatDate(layout string) string {
 	padding := findPadding(c.logger.GetPaddings(), DatePadding) != -1
 	after := ""
 	formatted := c.Time.Format(layout)
 
 	if padding {
-		longest := 30 // "Wednesday September 30th, 9999" was the longest date I could findPadding.
+		longest := 30 // "Wednesday September 30th, 9999" was the longest date I could find.
 		for i := len(formatted); i < longest; i++ {
 			after += " "
 		}
@@ -114,12 +148,17 @@ func (c *Context) FormatDate(layout string) string {
 	return fmt.Sprintf("%v%v", formatted, after)
 }
 
+// Formats the time with the layout provided.
 func (c *Context) FormatTime(layout string) string {
 	return c.Time.Format(layout)
 }
 
 var longestTimestampSeen = 0
 
+/*
+	This formats the timestamp with the layout provided.
+	This padding can change due to the fact that timestamps aren't universal in how they're formatted.
+*/
 func (c *Context) FormatTimestamp(layout string) string {
 	padding := findPadding(c.logger.GetPaddings(), TimestampPadding) != -1
 	formatted := c.Time.Format(layout)
