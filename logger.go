@@ -61,9 +61,10 @@ type Logger interface {
 	GetPaddings() []Padding
 	// Returns all the Column s this Logger uses.
 	GetColumns() []Column
-	// Logs a message. This should return a status code
-	// and an optional error message.
+	// Logs a message. This should return a status code and an optional error message.
 	Log(level, message string) (int, error)
+	// Similar to Logger.Log, but can contain additional information if the logger needs it.
+	LogWithExtraInfo(level, message string, info interface{}) (int, error)
 }
 
 // Context stuff
