@@ -21,7 +21,7 @@ package Tests
 
 import (
 	"fmt"
-	log "simple-logger"
+	log "github.com/xaanit/simple-logger"
 	"testing"
 	"time"
 )
@@ -74,6 +74,10 @@ func (c *testLogger) Log(level, message string) (int, error) {
 	c.str = format
 
 	return log.Success, nil
+}
+
+func (t *testLogger) LogWithExtraInfo(level, message string, info interface{}) (int, error) {
+	return t.Log(level, message)
 }
 
 func TestLogger(t *testing.T) {

@@ -94,6 +94,10 @@ func (c ConsoleLogger) Log(level, message string) (int, error) {
 	return Success, nil
 }
 
+func (c ConsoleLogger) LogWithExtraInfo(level, message string, info interface{}) (int, error) {
+	return c.Log(level, message)
+}
+
 // Creates a new LoggerBuilder for making instances of ConsoleLogger
 func ConsoleLoggerBuilder() LoggerBuilder {
 	return &consoleLoggerBuilder{
