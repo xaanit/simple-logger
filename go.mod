@@ -1,4 +1,4 @@
-module simple-logger
+module github.com/xaanit/simple-logger
 
 go 1.13
 
